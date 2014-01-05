@@ -89,4 +89,10 @@ struct
   
   fun str s = List.foldr (op >>>) (return s) (List.map ch (String.explode s));
 
+  (* parser: returns array of p' returned vs separated by p *)
+  fun sep p p' = let
+    val entry = p' >>= (fn v => p >>> return v);
+  in
+    many entry >>= (fn vs => p' >>= (fn v => return (vs @ [v])))
+  end;
 end;
