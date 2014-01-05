@@ -20,33 +20,34 @@ struct
   (* INFIXES *)
   
   
-  (* p >>> p': if p succeeds then continue with p' *)
   infix 3 >>>;
+  infix 3 >>=;
+  infix 4 ooo;
+  infix 3 +++;
+  infix 3 xxx;
+  
+  (* p >>> p': if p succeeds then continue with p' *)
   fun p >>> p' = Parser (fn cs => case parse p cs of 
       NONE => NONE
     | SOME (v, cs') => parse p' cs');
   
   (* p >>= f: if p succeeds pass v to f returning p' *)
-  infix 3 >>=;
   (* f: 'a -> parser *)
   fun p >>= f = Parser (fn cs => case parse p cs of 
       NONE => NONE
     | SOME (v, cs') => parse (f v) cs'); 
 
   (* p ooo p': if p fails retry with p' *)
-  infix 4 ooo;
   fun p ooo p' = Parser (fn cs => case parse p cs of 
       NONE => parse p' cs
     | some => some);
   
   (* p +++ p': if p succeeds retry with p' *)
-  infix 3 +++;
   fun p +++ p' = Parser (fn cs => case parse p cs of
       NONE => NONE
     | some => parse p' cs)
   
   (* p xxx p': if p fails retry with p' *)
-  infix 3 xxx;
   fun p xxx p' = Parser (fn cs => case parse p cs of
       NONE => parse p' cs
     | some => NONE);
@@ -90,9 +91,12 @@ struct
   fun str s = List.foldr (op >>>) (return s) (List.map ch (String.explode s));
 
   (* parser: returns array of p' returned vs separated by p *)
-  fun sep p p' = let
-    val entry = p' >>= (fn v => p >>> return v);
-  in
-    many entry >>= (fn vs => p' >>= (fn v => return (vs @ [v])))
-  end;
+  fun sep p p' = p' >>= (fn v => any (p >>> p') >>= (fn vs => return (v::vs)));
+  
+  (* parser: turns a parser ref into a parser *)
+  fun mutable r = Parser (fn cs => parse (!r) cs);
+  
+  fun eof p = Parser (fn cs => case parse p cs of
+    SOME (v, nil) => SOME (v, nil)
+  | _ => NONE);
 end;

@@ -10,41 +10,76 @@ struct
     | OBJECT of (string * value) list
   ;
   
-  val join = String.concatWith ",";
-  fun quote s = "\"" ^ s ^ "\"";
+  local
+    val join = String.concatWith ",";
+    fun quote s = "\"" ^ s ^ "\"";
+  in
+    fun dump json =
+      case json of
+        NULL => "null"
+      | (STRING v) => quote v
+      | (BOOLEAN v) => Bool.toString v
+      | (NUMBER v) => Real.toString v
+      | (ARRAY vs) => "[" ^ (join (List.map dump vs)) ^ "]"
+      | (OBJECT vs) => let
+        fun pair (k, v) = (quote k) ^ ":" ^ (dump v);
+      in
+        "{" ^ (join (List.map pair vs)) ^ "}"
+      end
+  end;
   
-  fun dump json =
-    case json of
-      NULL => "null"
-    | (STRING v) => quote v
-    | (BOOLEAN v) => Bool.toString v
-    | (NUMBER v) => Real.toString v
-    | (ARRAY vs) => "[" ^ (join (List.map dump vs)) ^ "]"
-    | (OBJECT vs) => let
-      fun pair (k, v) = (quote k) ^ ":" ^ (dump v);
+  local
+    open Parser;
+
+    infix 3 >>>;
+    infix 3 >>=;
+    infix 4 ooo;
+    infix 3 +++;
+    infix 3 xxx;
+  
+    (* NULL *)
+    val null = str "null" >>> return NULL;
+  
+    (* BOOLEAN *)
+    local
+      val true' = str "true" >>> return (BOOLEAN true);
+      val false' = str "false" >>> return (BOOLEAN false);
     in
-      "{" ^ (join (List.map pair vs)) ^ "}"
+      val boolean = true' ooo false'
     end;
   
-  val null = str "null" >>> return NULL;
+    (* STRING *)
+    local
+      val escaped_quote = ch #"\\" >>> ch #"\"" >>> return #"\"";
+      val not_quote = ch #"\"" xxx item;
+    in
+      val string = ch #"\"" >>> many (escaped_quote ooo not_quote) >>= (fn cs =>
+        ch #"\"" >>> return (STRING (String.implode cs)))
+    end;
   
-  local
-    val true' = str "true" >>> return (BOOLEAN true);
-    val false' = str "false" >>> return (BOOLEAN false);
-  in
-    val boolean = true' ooo false';
-  end
+    (* JSON *)
+    val jsonref = ref (null ooo boolean ooo string);
+    val json = mutable jsonref;
   
-  local
-    val quote = #"\"";
-    val escaped = ch #"\\" >>> ch quote >>> return quote;
-    val other = ch quote xxx item;
-  in
-    val string = ch quote >>> many (escaped ooo other) >>= (fn cs =>
-      ch quote >>> return (String.implode cs));
-  end;
+    (* ARRAY *)    
+    local
+      val comma_sep = sep (ch #",");
+    in
+      val array = ch #"[" >>> comma_sep json >>= (fn vs => 
+        ch #"]" >>> return (ARRAY vs));
+    end;
+  
+    (* OBJECT *)
+    local
+      val pair = string >>= (fn (STRING k) => 
+        ch #":" >>> json >>= (fn v => return (k, v)));
+    in
+      val object = ch #"{" >>> sep (ch #",") pair >>= (fn vs =>
+        ch #"}" >>> return (OBJECT vs));
+    end;
 
-  fun load s = ();
-  
-  
+    val _ = jsonref := (!jsonref) ooo array ooo object;
+  in
+    fun load s = #1(Option.valOf (parse (eof json) (String.explode s)))
+  end;
 end;
