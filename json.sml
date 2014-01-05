@@ -28,10 +28,22 @@ struct
   
   val null = str "null" >>> return NULL;
   
-  val true' = str "true" >>> return (BOOLEAN true);
-  val false' = str "false" >>> return (BOOLEAN false);
-  val boolean = true' ooo false';
+  local
+    val true' = str "true" >>> return (BOOLEAN true);
+    val false' = str "false" >>> return (BOOLEAN false);
+  in
+    val boolean = true' ooo false';
+  end
   
+  local
+    val quote = #"\"";
+    val escaped = ch #"\\" >>> ch quote >>> return quote;
+    val other = ch quote xxx item;
+  in
+    val string = ch quote >>> many (escaped ooo other) >>= (fn cs =>
+      ch quote >>> return (String.implode cs));
+  end;
+
   fun load s = ();
   
   
