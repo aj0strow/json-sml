@@ -26,6 +26,13 @@ struct
       "{" ^ (join (List.map pair vs)) ^ "}"
     end;
   
+  val null = str "null" >>> return NULL;
+  
+  val true' = str "true" >>> return (BOOLEAN true);
+  val false' = str "false" >>> return (BOOLEAN false);
+  val boolean = true' ooo false';
+  
   fun load s = ();
+  
   
 end;
