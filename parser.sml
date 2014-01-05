@@ -50,7 +50,7 @@ struct
   fun p xxx p' = Parser (fn cs => case parse p cs of
       NONE => parse p' cs
     | some => NONE);
-    
+        
   
   (* PARSERS *)
   
@@ -86,5 +86,7 @@ struct
   (* parser: returns array of 1..n vs *)
   and many p = p >>= (fn v =>
     (any p) >>= (fn vs => return (v::vs)));
+  
+  fun str s = List.foldr (op >>>) (return s) (List.map ch (String.explode s));
 
 end;
