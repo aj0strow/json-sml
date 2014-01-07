@@ -1,6 +1,6 @@
 # json-sml
 
-Still need to account for arbitrary whitespce. So far the following works:
+So far the following works:
 
 ```sml
 use "parser.sml";

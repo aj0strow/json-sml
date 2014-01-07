@@ -36,6 +36,9 @@ struct
     infix 4 ooo;
     infix 3 +++;
     infix 3 xxx;
+    
+    val whitespace = any (chs [ #" ", #"\t", #"\n", #"\r" ]);
+    fun token c = wrap whitespace (ch c);
   
     (* NULL *)
     val null = str "null" >>> return NULL;
@@ -47,6 +50,17 @@ struct
     in
       val boolean = true' ooo false'
     end;
+    
+    (* NUMBER *)
+    local
+      val digit = chs (String.explode "0123456789");
+      val integer = many digit;
+    in
+      val number = integer >>= (fn cs => 
+        case (Real.fromString (String.implode cs)) of
+          NONE => fail
+        | (SOME r) => return (NUMBER r));
+    end; 
   
     (* STRING *)
     local
@@ -58,24 +72,20 @@ struct
     end;
   
     (* JSON *)
-    val jsonref = ref (null ooo boolean ooo string);
+    val jsonref = ref (null ooo boolean ooo number ooo string);
     val json = mutable jsonref;
   
     (* ARRAY *)    
-    local
-      val comma_sep = sep (ch #",");
-    in
-      val array = ch #"[" >>> comma_sep json >>= (fn vs => 
-        ch #"]" >>> return (ARRAY vs));
-    end;
+    val array = ch #"[" >>> sep (token #",") json >>= (fn vs => 
+      ch #"]" >>> return (ARRAY vs));
   
     (* OBJECT *)
     local
       val pair = string >>= (fn (STRING k) => 
-        ch #":" >>> json >>= (fn v => return (k, v)));
+        (token #":") >>> json >>= (fn v => return (k, v)));
     in
-      val object = ch #"{" >>> sep (ch #",") pair >>= (fn vs =>
-        ch #"}" >>> return (OBJECT vs));
+      val object = token #"{" >>> sep (token #",") pair >>= (fn vs =>
+        token #"}" >>> return (OBJECT vs));
     end;
 
     val _ = jsonref := (!jsonref) ooo array ooo object;

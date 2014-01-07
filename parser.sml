@@ -93,6 +93,8 @@ struct
   (* parser: returns array of p' returned vs separated by p *)
   fun sep p p' = p' >>= (fn v => any (p >>> p') >>= (fn vs => return (v::vs)));
   
+  fun wrap p p' = p >>> p' >>= (fn v => p >>> (return v));
+  
   (* parser: turns a parser ref into a parser *)
   fun mutable r = Parser (fn cs => parse (!r) cs);
   
