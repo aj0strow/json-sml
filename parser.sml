@@ -4,14 +4,14 @@
 structure Parser = 
 struct
   
-  (* Ex:  Parser (fn cs => SOME (v, cs'))   *)
-  datatype 'a parser = Parser of (char list -> ('a * char list) option);
+  (* Ex:  PARSER (fn cs => SOME (v, cs'))   *)
+  datatype 'a parser = PARSER of (char list -> ('a * char list) option);
   
   (* cs: char list *)
-  fun parse (Parser p) cs = p cs;
+  fun parse (PARSER p) cs = p cs;
   
   (* s: string *)
-  fun debug (Parser p) s = 
+  fun debug (PARSER p) s = 
     case (p (String.explode s)) of
       NONE => NONE
     | SOME (v, cs) => SOME (v, String.implode cs);
@@ -27,28 +27,28 @@ struct
   infix 3 xxx;
   
   (* p >>> p': if p succeeds then continue with p' *)
-  fun p >>> p' = Parser (fn cs => case parse p cs of 
+  fun p >>> p' = PARSER (fn cs => case parse p cs of 
       NONE => NONE
     | SOME (v, cs') => parse p' cs');
   
   (* p >>= f: if p succeeds pass v to f returning p' *)
   (* f: 'a -> parser *)
-  fun p >>= f = Parser (fn cs => case parse p cs of 
+  fun p >>= f = PARSER (fn cs => case parse p cs of 
       NONE => NONE
     | SOME (v, cs') => parse (f v) cs'); 
 
   (* p ooo p': if p fails retry with p' *)
-  fun p ooo p' = Parser (fn cs => case parse p cs of 
+  fun p ooo p' = PARSER (fn cs => case parse p cs of 
       NONE => parse p' cs
     | some => some);
   
   (* p +++ p': if p succeeds retry with p' *)
-  fun p +++ p' = Parser (fn cs => case parse p cs of
+  fun p +++ p' = PARSER (fn cs => case parse p cs of
       NONE => NONE
     | some => parse p' cs)
   
   (* p xxx p': if p fails retry with p' *)
-  fun p xxx p' = Parser (fn cs => case parse p cs of
+  fun p xxx p' = PARSER (fn cs => case parse p cs of
       NONE => parse p' cs
     | some => NONE);
         
@@ -57,17 +57,17 @@ struct
   
   
   (* parser: always fails *)
-  val fail = Parser (fn _ => NONE);
+  val fail = PARSER (fn _ => NONE);
   
   (* parser: returns v without consuming cs *)
-  fun return v = Parser (fn cs => SOME (v, cs));
+  fun return v = PARSER (fn cs => SOME (v, cs));
   
   (* parser: returns the next c *)
   local
     fun next nil = NONE
       | next (c::cs) = SOME (c, cs);
   in
-    val item = Parser next;
+    val item = PARSER next;
   end;
   
   (* parser: returns c if test passes *)
@@ -98,10 +98,10 @@ struct
   fun wrap p p' = p >>> p' >>= (fn v => p >>> (return v));
   
   (* parser: turns a parser ref into a parser *)
-  fun mutable r = Parser (fn cs => parse (!r) cs);
+  fun mutable r = PARSER (fn cs => parse (!r) cs);
   
   (* parser: ensures there is no remaining cs *)
-  fun eof p = Parser (fn cs => case parse p cs of
+  fun eof p = PARSER (fn cs => case parse p cs of
     SOME (v, nil) => SOME (v, nil)
   | _ => NONE);
 end;

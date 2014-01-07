@@ -1,0 +1,16 @@
+#!/usr/local/bin/node
+
+var lines = [];
+
+process.stdin.resume();
+process.stdin.setEncoding('utf8');
+
+process.stdin.on('data', function(chunk) {
+  lines.push(chunk);
+});
+
+process.stdin.on('end', function() {
+  var raw = lines.join('');
+  var json = JSON.parse(raw);
+  process.stdout.write(JSON.stringify(json));
+});
