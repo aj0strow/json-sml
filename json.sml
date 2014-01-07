@@ -39,6 +39,7 @@ struct
     
     val whitespace = any (chs [ #" ", #"\t", #"\n", #"\r" ]);
     fun token c = wrap whitespace (ch c);
+    fun comma_sep p = sep (token #",") p ooo return nil;
   
     (* NULL *)
     val null = str "null" >>> return NULL;
@@ -59,8 +60,11 @@ struct
         return (s ^ "." ^ s')));
       val positive = float ooo integer;
       val negative = (ch #"-") >>> positive >>= (fn s => return ("~" ^ s));
+      val regular = negative ooo positive;
+      val scientific = regular >>= (fn s => 
+        chs [ #"e", #"E" ] >>> regular >>= (fn s' => return (s ^ "e" ^ s')));
     in
-      val number = (negative ooo positive) >>= (fn s => 
+      val number = (scientific ooo regular) >>= (fn s => 
         case (Real.fromString s) of
           NONE => fail
         | (SOME r) => return (NUMBER r));
@@ -80,15 +84,15 @@ struct
     val json = mutable jsonref;
   
     (* ARRAY *)    
-    val array = ch #"[" >>> sep (token #",") json >>= (fn vs => 
-      ch #"]" >>> return (ARRAY vs));
+    val array = token #"[" >>> comma_sep json >>= (fn vs => 
+      token #"]" >>> return (ARRAY vs));
   
     (* OBJECT *)
     local
       val pair = string >>= (fn (STRING k) => 
         (token #":") >>> json >>= (fn v => return (k, v)));
     in
-      val object = token #"{" >>> sep (token #",") pair >>= (fn vs =>
+      val object = token #"{" >>> comma_sep pair >>= (fn vs =>
         token #"}" >>> return (OBJECT vs));
     end;
 

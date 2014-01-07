@@ -1,0 +1,6 @@
+{
+  "empty": [],
+  "nested": [[]],
+  "types": [null, false, true],
+  "strings": [ "a", "b", "c" ]
+}

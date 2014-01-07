@@ -1,0 +1,13 @@
+{
+  "strings": {
+    "single quotes": "he said 'what'",
+    "double quotes": "she said \"what?!\""
+  },
+  "a": {
+    "b": {
+      "c": {
+        "d": "e"
+      }
+    }
+  }
+}
