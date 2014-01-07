@@ -54,10 +54,14 @@ struct
     (* NUMBER *)
     local
       val digit = chs (String.explode "0123456789");
-      val integer = many digit;
+      val integer = many digit >>= (fn cs => return (String.implode cs));
+      val float = integer >>= (fn s => ch #"." >>> integer >>= (fn s' =>
+        return (s ^ "." ^ s')));
+      val positive = float ooo integer;
+      val negative = (ch #"-") >>> positive >>= (fn s => return ("~" ^ s));
     in
-      val number = integer >>= (fn cs => 
-        case (Real.fromString (String.implode cs)) of
+      val number = (negative ooo positive) >>= (fn s => 
+        case (Real.fromString s) of
           NONE => fail
         | (SOME r) => return (NUMBER r));
     end; 
