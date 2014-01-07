@@ -20,3 +20,5 @@ It's likely slow, but at ~200 LoC its tiny compared to a fast C lexer like https
 ### Parser
 
 The Parser structure is adapted from a McGill University Comp 302 assignment. Building up parsers in a functional way certainly leads to amazingly legible parsers. 
+
+One gotcha was that infixes do not get included in the context when you open a structure. That means the infixes declarations must be copied. 
